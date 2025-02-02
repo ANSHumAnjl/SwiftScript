@@ -1,0 +1,120 @@
+npm install --save @react-native-firebase/app @react-native-firebase/auth @react-native-firebase/firestore @react-native-firebase/storage
+import auth from '@react-native-firebase/auth';
+
+// Sign Up Function
+const signUp = async (email, password) => {
+  try {
+    await auth().createUserWithEmailAndPassword(email, password);
+    console.log("User signed up");
+  } catch (error) {
+    console.error(error.message);
+  }
+};
+
+// Log In Function
+const logIn = async (email, password) => {
+  try {
+    await auth().signInWithEmailAndPassword(email, password);
+    console.log("User logged in");
+  } catch (error) {
+    console.error(error.message);
+  }
+};
+import React, { useState, useEffect } from 'react';
+import { View, TextInput, Button, FlatList, Text } from 'react-native';
+import firestore from '@react-native-firebase/firestore';
+
+const ChatScreen = () => {
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState('');
+
+  // Fetch messages from Firestore
+  useEffect(() => {
+    const unsubscribe = firestore()
+      .collection('Chats')
+      .orderBy('timestamp')
+      .onSnapshot(snapshot => {
+        const newMessages = snapshot.docs.map(doc => doc.data());
+        setMessages(newMessages);
+      });
+
+    return unsubscribe;
+  }, []);
+
+  // Send message to Firestore
+  const sendMessage = async () => {
+    if (message.trim()) {
+      await firestore().collection('Chats').add({
+        text: message,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+      });
+      setMessage('');
+    }
+  };
+
+  return (
+    <View>
+      <FlatList
+        data={messages}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={({ item }) => <Text>{item.text}</Text>}
+      />
+      <TextInput
+        value={message}
+        onChangeText={setMessage}
+        placeholder="Type a message"
+      />
+      <Button title="Send" onPress={sendMessage} />
+    </View>
+  );
+};
+const unsubscribe = firestore()
+  .collection('Chats')
+  .orderBy('timestamp')
+  .onSnapshot(snapshot => {
+    const newMessages = snapshot.docs.map(doc => doc.data());
+    setMessages(newMessages);
+  });
+import storage from '@react-native-firebase/storage';
+
+// Upload Profile Picture
+const uploadProfilePicture = async (uri) => {
+  const reference = storage().ref('profilePictures/userId');
+  await reference.putFile(uri);
+  const url = await reference.getDownloadURL();
+  return url;
+};
+npm install @react-native-firebase/messaging
+
+import messaging from '@react-native-firebase/messaging';
+
+// Request permission for notifications
+const requestPermission = async () => {
+  await messaging().requestPermission();
+  const token = await messaging().getToken();
+  console.log('FCM Token:', token);
+};
+
+// Handle incoming messages
+messaging().onMessage(async remoteMessage => {
+  console.log('A new message has arrived!', remoteMessage);
+});
+import storage from '@react-native-firebase/storage';
+
+// Upload image/video
+const uploadFile = async (uri, path) => {
+  const reference = storage().ref(path);
+  await reference.putFile(uri);
+  const url = await reference.getDownloadURL();
+  return url;
+};
+const searchMessages = async (query) => {
+  const snapshot = await firestore()
+    .collection('Chats')
+    .where('text', '>=', query)
+    .where('text', '<=', query + '\uf8ff')
+    .get();
+
+  const results = snapshot.docs.map(doc => doc.data());
+  setMessages(results);
+};
